@@ -25,3 +25,5 @@ npm run build
 - Vite
 - Tailwind CSS
 - Supabase
+
+
