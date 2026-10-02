@@ -1,0 +1,3 @@
+## Design
+- CampusFind uses the "Playful Notice Board" system: tokens (cream/board/tomato/mustard/ink) live in src/styles.css; fonts Fraunces (display) + DM Sans (body) load via <link> in src/routes/__root.tsx. Keep new colors/tokens in styles.css, never hardcoded classes in components.
+- Pages: /, /lost, /found, /report-lost, /report-found, /help, /auth. Board items come from the Supabase `items` table via src/lib/items.ts; public reads select only safe columns (reporter first name + role, never email). Profiles are owner-only; photos live in the private item-photos bucket shown via signed URLs. Reporting requires sign-in (inline prompt, no redirect gate) because posts must be tied to a reporter.
