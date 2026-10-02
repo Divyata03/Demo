@@ -19,6 +19,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ReportFoundRouteImport } from './routes/report-found'
 import { Route as ReportLostRouteImport } from './routes/report-lost'
 import { Route as StaffRouteImport } from './routes/staff'
+import { Route as ConversationsConversationIdRouteImport } from './routes/conversations.$conversationId'
 import { Route as ItemsItemIdRouteImport } from './routes/items.$itemId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -71,6 +72,12 @@ const StaffRoute = StaffRouteImport.update({
   path: '/staff',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConversationsConversationIdRoute =
+  ConversationsConversationIdRouteImport.update({
+    id: '/conversations/$conversationId',
+    path: '/conversations/$conversationId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ItemsItemIdRoute = ItemsItemIdRouteImport.update({
   id: '/items/$itemId',
   path: '/items/$itemId',
@@ -88,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/report-found': typeof ReportFoundRoute
   '/report-lost': typeof ReportLostRoute
   '/staff': typeof StaffRoute
+  '/conversations/$conversationId': typeof ConversationsConversationIdRoute
   '/items/$itemId': typeof ItemsItemIdRoute
 }
 export interface FileRoutesByTo {
@@ -101,6 +109,7 @@ export interface FileRoutesByTo {
   '/report-found': typeof ReportFoundRoute
   '/report-lost': typeof ReportLostRoute
   '/staff': typeof StaffRoute
+  '/conversations/$conversationId': typeof ConversationsConversationIdRoute
   '/items/$itemId': typeof ItemsItemIdRoute
 }
 export interface FileRoutesById {
@@ -115,6 +124,7 @@ export interface FileRoutesById {
   '/report-found': typeof ReportFoundRoute
   '/report-lost': typeof ReportLostRoute
   '/staff': typeof StaffRoute
+  '/conversations/$conversationId': typeof ConversationsConversationIdRoute
   '/items/$itemId': typeof ItemsItemIdRoute
 }
 export interface FileRouteTypes {
@@ -130,6 +140,7 @@ export interface FileRouteTypes {
     | '/report-found'
     | '/report-lost'
     | '/staff'
+    | '/conversations/$conversationId'
     | '/items/$itemId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/report-found'
     | '/report-lost'
     | '/staff'
+    | '/conversations/$conversationId'
     | '/items/$itemId'
   id:
     | '__root__'
@@ -156,6 +168,7 @@ export interface FileRouteTypes {
     | '/report-found'
     | '/report-lost'
     | '/staff'
+    | '/conversations/$conversationId'
     | '/items/$itemId'
   fileRoutesById: FileRoutesById
 }
@@ -170,6 +183,7 @@ export interface RootRouteChildren {
   ReportFoundRoute: typeof ReportFoundRoute
   ReportLostRoute: typeof ReportLostRoute
   StaffRoute: typeof StaffRoute
+  ConversationsConversationIdRoute: typeof ConversationsConversationIdRoute
   ItemsItemIdRoute: typeof ItemsItemIdRoute
 }
 
@@ -245,6 +259,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/conversations/$conversationId': {
+      id: '/conversations/$conversationId'
+      path: '/conversations/$conversationId'
+      fullPath: '/conversations/$conversationId'
+      preLoaderRoute: typeof ConversationsConversationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/items/$itemId': {
       id: '/items/$itemId'
       path: '/items/$itemId'
@@ -266,6 +287,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportFoundRoute: ReportFoundRoute,
   ReportLostRoute: ReportLostRoute,
   StaffRoute: StaffRoute,
+  ConversationsConversationIdRoute: ConversationsConversationIdRoute,
   ItemsItemIdRoute: ItemsItemIdRoute,
 }
 export const routeTree = rootRouteImport

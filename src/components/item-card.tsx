@@ -14,72 +14,87 @@ const CATEGORY_CHIP: Record<Category, string> = {
 };
 
 export function ItemCard({ item }: { item: Item }) {
+  const isLost = item.status === "lost";
+
   return (
     <Link
       to="/items/$itemId"
       params={{ itemId: item.id }}
-      className="block overflow-hidden rounded-3xl border-2 border-ink/10 bg-white transition-transform hover:-translate-y-1 focus-visible:outline-3 focus-visible:outline-board"
+      className="group block overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_16px_36px_rgba(15,23,42,0.1)] focus-visible:outline-3 focus-visible:outline-blue-500"
     >
       <article>
-        {item.photoUrl && (
-          <img
-            src={item.photoUrl}
-            alt={item.title}
-            loading="lazy"
-            className="aspect-[4/3] w-full object-cover"
-          />
+        {item.photoUrl ? (
+          <div className="relative overflow-hidden">
+            <img
+              src={item.photoUrl}
+              alt={item.title}
+              loading="lazy"
+              className="aspect-[4/3] w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+            />
+            <span
+              className={
+                "absolute left-4 top-4 rounded-full border border-white/50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] " +
+                (isLost ? "bg-rose-500/90 text-white" : "bg-teal-500/90 text-white")
+              }
+            >
+              {isLost ? "Lost" : "Found"}
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-4">
+            <span className="grid size-12 place-items-center rounded-2xl bg-[linear-gradient(135deg,#e2e8f0,#f8fafc)] text-2xl">
+              {CATEGORY_ICON[item.category]}
+            </span>
+            <span
+              className={
+                "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] " +
+                (isLost ? "bg-rose-100 text-rose-700" : "bg-teal-100 text-teal-700")
+              }
+            >
+              {isLost ? "Lost" : "Found"}
+            </span>
+          </div>
         )}
+
         <div className="p-5">
           <div className="flex items-center justify-between gap-2">
             <span
               className={
-                "rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide " +
+                "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] " +
                 CATEGORY_CHIP[item.category]
               }
             >
               {item.category}
             </span>
-            <span className="text-xs font-medium text-ink/50">{item.time}</span>
+            <span className="text-xs font-medium text-slate-500">{item.time}</span>
           </div>
-          <div className="mt-4 flex items-start gap-3">
-            {!item.photoUrl && (
-              <span
-                aria-hidden="true"
-                className="grid size-11 shrink-0 place-items-center rounded-2xl bg-cream text-xl"
-              >
-                {CATEGORY_ICON[item.category]}
+
+          <div className="mt-4 min-w-0">
+            <h3 className="font-display text-xl font-extrabold leading-tight tracking-[-0.03em] text-slate-900">
+              {item.title}
+            </h3>
+
+            <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-600">
+              <span>{item.location}</span>
+              <span className="text-slate-300">•</span>
+              <span className={isLost ? "font-semibold text-rose-600" : "font-semibold text-teal-700"}>
+                {isLost ? "Lost" : "Found"}
               </span>
+            </p>
+
+            {item.description && (
+              <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{item.description}</p>
             )}
-            <div className="min-w-0">
-              <h3 className="font-display text-xl font-semibold leading-snug">{item.title}</h3>
-              <p className="mt-2 text-sm text-ink/60">
-                {item.location} ·{" "}
-                <span
-                  className={
-                    item.status === "lost"
-                      ? "font-semibold text-tomato"
-                      : "font-semibold text-board"
-                  }
-                >
-                  {item.status === "lost" ? "Lost" : "Found"}
-                </span>
-                {item.itemStatus && item.itemStatus !== "open" && (
-                  <>
-                    {" "}
-                    ·{" "}
-                    <span className="font-semibold text-ink">
-                      {ITEM_STATUS_LABEL[item.itemStatus]}
-                    </span>
-                  </>
-                )}
-              </p>
-              {item.description && (
-                <p className="mt-2 line-clamp-3 text-sm text-ink/70">{item.description}</p>
-              )}
-              {item.reporter && (
-                <p className="mt-3 text-xs font-medium text-ink/50">Posted by {item.reporter}</p>
-              )}
-            </div>
+
+            {item.itemStatus && item.itemStatus !== "open" && (
+              <div className="mt-3 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-700">
+                {ITEM_STATUS_LABEL[item.itemStatus]}
+              </div>
+            )}
+
+            {item.reporter && (
+              <p className="mt-4 text-xs font-medium text-slate-500">Posted by {item.reporter}</p>
+            )}
           </div>
         </div>
       </article>

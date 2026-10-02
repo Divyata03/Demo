@@ -4,12 +4,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * CampusFind design system — "Playful Notice Board"
- * Palette: cream #FBF3E4, board navy #1E3A5B, tomato #E8542F,
- * mustard #F5B841, ink #21251F. Fonts: Fraunces (display), DM Sans (body).
- */
-
+/* CampusFind design system — premium campus SaaS */
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -42,40 +37,44 @@
   --color-tomato: var(--tomato);
   --color-mustard: var(--mustard);
   --color-ink: var(--ink);
-  --font-display: "Fraunces", Georgia, serif;
-  --font-sans: "DM Sans", system-ui, sans-serif;
+  --font-display: "Manrope", "Inter", "Segoe UI", sans-serif;
+  --font-sans: "Inter", "Segoe UI", sans-serif;
 }
 
 :root {
   --radius: 1rem;
 
-  /* Core palette */
-  --cream: oklch(0.962 0.027 90);
-  --board: oklch(0.328 0.058 253);
-  --tomato: oklch(0.645 0.207 34);
-  --mustard: oklch(0.824 0.137 84);
-  --ink: oklch(0.244 0.012 145);
+  /* CampusFind color system */
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #172554;
+  --primary-foreground: #f8fafc;
+  --secondary: #2563eb;
+  --secondary-foreground: #eff6ff;
+  --accent: #14b8a6;
+  --accent-foreground: #ecfeff;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --destructive: #dc2626;
+  --destructive-foreground: #fff1f2;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: rgba(37, 99, 235, 0.45);
 
-  /* Semantic tokens */
-  --background: var(--cream);
-  --foreground: var(--ink);
-  --card: oklch(1 0 0);
-  --card-foreground: var(--ink);
-  --popover: oklch(1 0 0);
-  --popover-foreground: var(--ink);
-  --primary: var(--board);
-  --primary-foreground: var(--cream);
-  --secondary: var(--mustard);
-  --secondary-foreground: var(--ink);
-  --muted: oklch(0.925 0.02 90);
-  --muted-foreground: oklch(0.44 0.02 120);
-  --accent: var(--mustard);
-  --accent-foreground: var(--ink);
-  --destructive: var(--tomato);
-  --destructive-foreground: oklch(0.98 0.01 80);
-  --border: oklch(0.244 0.012 145 / 10%);
-  --input: oklch(0.244 0.012 145 / 18%);
-  --ring: var(--board);
+  --cream: #f8fafc;
+  --board: #172554;
+  --tomato: #dc2626;
+  --mustard: #f59e0b;
+  --ink: #0f172a;
+
+  --shadow-soft: 0 12px 30px rgba(15, 23, 42, 0.08);
+  --shadow-card: 0 16px 36px rgba(15, 23, 42, 0.12);
 }
 
 @layer base {
@@ -88,14 +87,26 @@
   }
 
   body {
-    background-color: var(--color-background);
+    background:
+      radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 28%),
+      linear-gradient(180deg, #f8fafc 0%, #f8fafc 100%);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  img {
+    display: block;
+    max-width: 100%;
+  }
+
+  a {
+    text-decoration: none;
   }
 
   ::selection {
-    background-color: var(--color-mustard);
+    background-color: rgba(20, 184, 166, 0.2);
     color: var(--color-ink);
   }
 }
@@ -115,7 +126,17 @@
   animation: fade-up 0.5s ease both;
 }
 
-/* Consistent focus-visible ring for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @layer base {
   a:focus-visible,
   button:focus-visible,
@@ -123,8 +144,8 @@
   textarea:focus-visible,
   select:focus-visible,
   summary:focus-visible {
-    outline: 3px solid var(--color-board);
+    outline: 3px solid rgba(37, 99, 235, 0.45);
     outline-offset: 2px;
-    border-radius: 0.5rem;
+    border-radius: 0.7rem;
   }
 }

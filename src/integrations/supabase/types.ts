@@ -198,6 +198,7 @@ export type Database = {
         Row: {
           claim_id: string | null;
           created_at: string;
+          conversation_id: string | null;
           id: string;
           item_id: string | null;
           kind: string;
@@ -207,6 +208,7 @@ export type Database = {
         Insert: {
           claim_id?: string | null;
           created_at?: string;
+          conversation_id?: string | null;
           id?: string;
           item_id?: string | null;
           kind: string;
@@ -216,6 +218,7 @@ export type Database = {
         Update: {
           claim_id?: string | null;
           created_at?: string;
+          conversation_id?: string | null;
           id?: string;
           item_id?: string | null;
           kind?: string;
@@ -224,26 +227,140 @@ export type Database = {
         };
         Relationships: [];
       };
+      conversations: {
+        Row: {
+          claim_id: string;
+          created_at: string;
+          id: string;
+          item_id: string;
+          meeting_at: string | null;
+          meeting_location: string | null;
+          meeting_proposed_by: string | null;
+          meeting_responded_by: string | null;
+          meeting_status: Database["public"]["Enums"]["meeting_status"] | null;
+          status: Database["public"]["Enums"]["conversation_status"];
+          updated_at: string;
+        };
+        Insert: {
+          claim_id: string;
+          created_at?: string;
+          id?: string;
+          item_id: string;
+          meeting_at?: string | null;
+          meeting_location?: string | null;
+          meeting_proposed_by?: string | null;
+          meeting_responded_by?: string | null;
+          meeting_status?: Database["public"]["Enums"]["meeting_status"] | null;
+          status?: Database["public"]["Enums"]["conversation_status"];
+          updated_at?: string;
+        };
+        Update: {
+          claim_id?: string;
+          created_at?: string;
+          id?: string;
+          item_id?: string;
+          meeting_at?: string | null;
+          meeting_location?: string | null;
+          meeting_proposed_by?: string | null;
+          meeting_responded_by?: string | null;
+          meeting_status?: Database["public"]["Enums"]["meeting_status"] | null;
+          status?: Database["public"]["Enums"]["conversation_status"];
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      messages: {
+        Row: {
+          conversation_id: string;
+          created_at: string;
+          id: string;
+          message_text: string;
+          read_at: string | null;
+          sender_id: string;
+        };
+        Insert: {
+          conversation_id: string;
+          created_at?: string;
+          id?: string;
+          message_text: string;
+          read_at?: string | null;
+          sender_id: string;
+        };
+        Update: {
+          conversation_id?: string;
+          created_at?: string;
+          id?: string;
+          message_text?: string;
+          read_at?: string | null;
+          sender_id?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
+          academic_year: string | null;
+          break_room_location: string | null;
           campus_role: Database["public"]["Enums"]["campus_role"];
           college_email: string;
           created_at: string;
+          cleaning_area: string | null;
+          department: string | null;
+          employee_staff_id: string | null;
+          equipment_room_location: string | null;
           full_name: string;
+          job_role: string | null;
+          phone_number: string | null;
+          semester: number | null;
+          staff_room_location: string | null;
+          student_roll_number: string | null;
+          subjects: string[] | null;
+          updated_at: string;
+          user_type: string | null;
+          work_location: string | null;
           id: string;
         };
         Insert: {
+          academic_year?: string | null;
+          break_room_location?: string | null;
           campus_role?: Database["public"]["Enums"]["campus_role"];
           college_email: string;
           created_at?: string;
+          cleaning_area?: string | null;
+          department?: string | null;
+          employee_staff_id?: string | null;
+          equipment_room_location?: string | null;
           full_name: string;
+          job_role?: string | null;
+          phone_number?: string | null;
+          semester?: number | null;
+          staff_room_location?: string | null;
+          student_roll_number?: string | null;
+          subjects?: string[] | null;
+          updated_at?: string;
+          user_type?: string | null;
+          work_location?: string | null;
           id: string;
         };
         Update: {
+          academic_year?: string | null;
+          break_room_location?: string | null;
           campus_role?: Database["public"]["Enums"]["campus_role"];
           college_email?: string;
           created_at?: string;
+          cleaning_area?: string | null;
+          department?: string | null;
+          employee_staff_id?: string | null;
+          equipment_room_location?: string | null;
           full_name?: string;
+          job_role?: string | null;
+          phone_number?: string | null;
+          semester?: number | null;
+          staff_room_location?: string | null;
+          student_roll_number?: string | null;
+          subjects?: string[] | null;
+          updated_at?: string;
+          user_type?: string | null;
+          work_location?: string | null;
           id?: string;
         };
         Relationships: [];
@@ -286,6 +403,40 @@ export type Database = {
         Returns: undefined;
       };
       save_profile_name: { Args: { p_full_name: string }; Returns: undefined };
+      save_user_profile: { Args: { p_profile: Json }; Returns: undefined };
+      can_access_conversation: { Args: { p_conversation_id: string }; Returns: boolean };
+      can_create_claim_conversation: {
+        Args: { p_claim_id: string; p_item_id: string };
+        Returns: boolean;
+      };
+      can_send_conversation_message: { Args: { p_conversation_id: string }; Returns: boolean };
+      propose_conversation_meeting: {
+        Args: { p_conversation_id: string; p_location: string; p_meeting_at: string };
+        Returns: undefined;
+      };
+      respond_conversation_meeting: {
+        Args: {
+          p_conversation_id: string;
+          p_response: Database["public"]["Enums"]["meeting_status"];
+        };
+        Returns: undefined;
+      };
+      get_conversation_summary: {
+        Args: { p_conversation_id: string };
+        Returns: {
+          claim_status: Database["public"]["Enums"]["claim_status"];
+          conversation_status: Database["public"]["Enums"]["conversation_status"];
+          item_id: string;
+          item_photo_path: string | null;
+          item_title: string;
+          meeting_at: string | null;
+          meeting_location: string | null;
+          meeting_proposed_by: string | null;
+          meeting_status: Database["public"]["Enums"]["meeting_status"] | null;
+          is_workflow_participant: boolean;
+          other_display_name: string;
+        }[];
+      };
     };
     Enums: {
       campus_role: "student" | "teacher" | "security" | "cleaning_staff" | "other_staff";
@@ -293,6 +444,8 @@ export type Database = {
       item_status: "open" | "claimed" | "returned";
       claim_status: "pending" | "approved" | "rejected" | "handover_pending" | "returned";
       staff_access: "staff" | "admin";
+      conversation_status: "active" | "closed" | "archived";
+      meeting_status: "proposed" | "accepted" | "declined";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -419,6 +572,8 @@ export const Constants = {
       item_status: ["open", "claimed", "returned"],
       claim_status: ["pending", "approved", "rejected", "handover_pending", "returned"],
       staff_access: ["staff", "admin"],
+      conversation_status: ["active", "closed", "archived"],
+      meeting_status: ["proposed", "accepted", "declined"],
     },
   },
 } as const;

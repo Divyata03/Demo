@@ -3,11 +3,39 @@ import type { Category, Item, ItemStatus } from "@/data/items";
 import type { Tables } from "@/integrations/supabase/types";
 
 type ItemRow = Tables<"items">;
+export type Conversation = Tables<"conversations">;
+export type ChatMessage = Tables<"messages">;
 const ITEM_PUBLIC_SELECT =
   "id, kind, title, category, description, photo_url, location, occurred_at, reporter_name, reporter_role, status, created_at";
 const ITEM_AUTHENTICATED_SELECT = `${ITEM_PUBLIC_SELECT}, is_hidden`;
 
 export type CampusRole = "student" | "teacher" | "security" | "cleaning_staff" | "other_staff";
+export type ProfileUserType = "student" | "teacher" | "cleaner" | "other_staff";
+
+export type ProfileSaveInput = {
+  user_type: ProfileUserType;
+  full_name: string;
+  phone_number: string;
+  student_roll_number?: string;
+  employee_staff_id?: string;
+  department?: string;
+  semester?: string;
+  academic_year?: string;
+  subjects?: string[];
+  staff_room_location?: string;
+  cleaning_area?: string;
+  equipment_room_location?: string;
+  break_room_location?: string;
+  job_role?: string;
+  work_location?: string;
+};
+
+export const PROFILE_TYPE_LABEL: Record<ProfileUserType, string> = {
+  student: "Student",
+  teacher: "Teacher",
+  cleaner: "Cleaner",
+  other_staff: "Other Staff",
+};
 
 export const ROLE_LABEL: Record<CampusRole, string> = {
   student: "Student",
@@ -202,7 +230,7 @@ export async function fetchContactRequestsForItems(itemIds: string[]) {
 export async function fetchNotifications(userId: string) {
   const { data, error } = await supabase
     .from("notifications")
-    .select("id, recipient_id, kind, claim_id, item_id, created_at, read_at")
+    .select("id, recipient_id, kind, claim_id, item_id, conversation_id, created_at, read_at")
     .eq("recipient_id", userId)
     .order("created_at", { ascending: false })
     .limit(12);
@@ -210,12 +238,182 @@ export async function fetchNotifications(userId: string) {
   return data;
 }
 
+export async function fetchUnreadNotificationCount(userId: string) {
+  const { count, error } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("recipient_id", userId)
+    .is("read_at", null);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+const CONVERSATION_SELECT =
+  "id, claim_id, item_id, status, meeting_location, meeting_at, meeting_status, meeting_proposed_by, meeting_responded_by, created_at, updated_at";
+
+export async function fetchConversation(conversationId: string) {
+  const { data, error } = await supabase
+    .from("conversations")
+    .select(CONVERSATION_SELECT)
+    .eq("id", conversationId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchConversationSummary(conversationId: string) {
+  const { data, error } = await supabase.rpc("get_conversation_summary", {
+    p_conversation_id: conversationId,
+  });
+  if (error) throw error;
+  const summary = data[0];
+  if (!summary) return null;
+  let itemPhotoUrl: string | null = null;
+  if (summary.item_photo_path) {
+    const { data: photo, error: photoError } = await supabase.storage
+      .from("item-photos")
+      .createSignedUrl(summary.item_photo_path, 3600);
+    if (!photoError) itemPhotoUrl = photo.signedUrl;
+  }
+  return { ...summary, item_photo_url: itemPhotoUrl };
+}
+
+export async function getOrCreateConversation(claimId: string, itemId: string) {
+  const existing = await supabase
+    .from("conversations")
+    .select(CONVERSATION_SELECT)
+    .eq("claim_id", claimId)
+    .maybeSingle();
+  if (existing.error) throw existing.error;
+  if (existing.data) return existing.data;
+
+  const created = await supabase
+    .from("conversations")
+    .insert({ claim_id: claimId, item_id: itemId })
+    .select(CONVERSATION_SELECT)
+    .single();
+  if (!created.error) return created.data;
+  if (created.error.code === "23505") {
+    const retry = await supabase
+      .from("conversations")
+      .select(CONVERSATION_SELECT)
+      .eq("claim_id", claimId)
+      .single();
+    if (!retry.error) return retry.data;
+  }
+  throw created.error;
+}
+
+export async function fetchConversationMessages(conversationId: string, before?: string) {
+  let query = supabase
+    .from("messages")
+    .select("id, conversation_id, sender_id, message_text, created_at, read_at")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(50);
+  if (before) query = query.lt("created_at", before);
+  const { data, error } = await query;
+  if (error) throw error;
+  return data.reverse();
+}
+
+export async function sendConversationMessage(conversationId: string, text: string) {
+  const messageText = text.trim();
+  if (!messageText || messageText.length > 2000) {
+    throw new Error("Messages must be between 1 and 2,000 characters.");
+  }
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error("Sign in to send a message.");
+  const { data, error } = await supabase
+    .from("messages")
+    .insert({
+      conversation_id: conversationId,
+      sender_id: auth.user.id,
+      message_text: messageText,
+    })
+    .select("id, conversation_id, sender_id, message_text, created_at, read_at")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function markConversationRead(conversationId: string, userId: string) {
+  const readAt = new Date().toISOString();
+  const [messages, notifications] = await Promise.all([
+    supabase
+      .from("messages")
+      .update({ read_at: readAt })
+      .eq("conversation_id", conversationId)
+      .neq("sender_id", userId)
+      .is("read_at", null),
+    supabase
+      .from("notifications")
+      .update({ read_at: readAt })
+      .eq("conversation_id", conversationId)
+      .eq("recipient_id", userId)
+      .is("read_at", null),
+  ]);
+  if (messages.error) throw messages.error;
+  if (notifications.error) throw notifications.error;
+}
+
+export async function fetchUnreadConversationMessageCount(conversationId: string, userId: string) {
+  const { count, error } = await supabase
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("conversation_id", conversationId)
+    .neq("sender_id", userId)
+    .is("read_at", null);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function proposeConversationMeeting(
+  conversationId: string,
+  location: string,
+  meetingAt: string,
+) {
+  const { error } = await supabase.rpc("propose_conversation_meeting", {
+    p_conversation_id: conversationId,
+    p_location: location.trim(),
+    p_meeting_at: meetingAt,
+  });
+  if (error) throw error;
+}
+
+export async function respondConversationMeeting(
+  conversationId: string,
+  response: "accepted" | "declined",
+) {
+  const { error } = await supabase.rpc("respond_conversation_meeting", {
+    p_conversation_id: conversationId,
+    p_response: response,
+  });
+  if (error) throw error;
+}
+
 export async function fetchProfile(userId: string) {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, full_name, college_email, campus_role, created_at")
+    .select(
+      "id, full_name, college_email, campus_role, user_type, phone_number, student_roll_number, employee_staff_id, department, semester, academic_year, subjects, staff_room_location, cleaning_area, equipment_room_location, break_room_location, job_role, work_location, created_at, updated_at",
+    )
     .eq("id", userId)
     .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchClaimantProfiles(userIds: string[]) {
+  const uniqueIds = [...new Set(userIds)];
+  if (!uniqueIds.length) return [];
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(
+      "id, full_name, college_email, user_type, phone_number, student_roll_number, employee_staff_id, department, semester, academic_year, subjects, staff_room_location, cleaning_area, equipment_room_location, break_room_location, job_role, work_location",
+    )
+    .in("id", uniqueIds);
   if (error) throw error;
   return data;
 }
@@ -310,6 +508,11 @@ export async function moderateItem(itemId: string, hidden: boolean) {
 
 export async function saveProfileName(fullName: string) {
   const { error } = await supabase.rpc("save_profile_name", { p_full_name: fullName });
+  if (error) throw error;
+}
+
+export async function saveUserProfile(profile: ProfileSaveInput) {
+  const { error } = await supabase.rpc("save_user_profile", { p_profile: profile });
   if (error) throw error;
 }
 

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, UserRound } from "lucide-react";
 import {
@@ -12,15 +12,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchNotifications, isCampusStaff, markNotificationRead } from "@/lib/items";
+import {
+  fetchNotifications,
+  fetchProfile,
+  fetchUnreadNotificationCount,
+  isCampusStaff,
+  markNotificationRead,
+} from "@/lib/items";
 
 type NavItem = { to: string; label: string; exact?: boolean };
 
 const NAV: NavItem[] = [
-  { to: "/", label: "Home", exact: true },
   { to: "/lost", label: "Lost Items" },
   { to: "/found", label: "Found Items" },
-  { to: "/help", label: "About / Help" },
+  { to: "/report-lost", label: "Report Lost" },
+  { to: "/report-found", label: "Report Found" },
+  { to: "/my-reports", label: "My Reports" },
+  { to: "/profile", label: "Profile" },
 ];
 
 const NOTIFICATION_LABEL: Record<string, string> = {
@@ -30,6 +38,7 @@ const NOTIFICATION_LABEL: Record<string, string> = {
   handover_request: "A handover needs confirmation",
   item_returned: "An item was marked returned",
   contact_request: "A private item request was received",
+  chat_message: "You received a chat message",
 };
 
 function NotificationDropdown() {
@@ -41,8 +50,14 @@ function NotificationDropdown() {
     queryFn: () => fetchNotifications(user!.id),
     enabled: !!user,
   });
+  const unreadCountQuery = useQuery({
+    queryKey: ["unread-notification-count", user?.id],
+    queryFn: () => fetchUnreadNotificationCount(user!.id),
+    enabled: !!user,
+  });
   const notifications = notificationsQuery.data ?? [];
-  const unread = notifications.filter((notification) => !notification.read_at).length;
+  const unread =
+    unreadCountQuery.data ?? notifications.filter((notification) => !notification.read_at).length;
 
   return (
     <DropdownMenu>
@@ -75,9 +90,17 @@ function NotificationDropdown() {
               onSelect={() => {
                 if (!notification.read_at)
                   void markNotificationRead(notification.id).then(() =>
-                    queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+                    Promise.all([
+                      queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+                      queryClient.invalidateQueries({ queryKey: ["unread-notification-count"] }),
+                    ]),
                   );
-                if (notification.item_id)
+                if (notification.conversation_id)
+                  void navigate({
+                    to: "/conversations/$conversationId",
+                    params: { conversationId: notification.conversation_id },
+                  });
+                else if (notification.item_id)
                   void navigate({ to: "/items/$itemId", params: { itemId: notification.item_id } });
               }}
               className="flex cursor-pointer flex-col items-start gap-1 whitespace-normal"
@@ -137,8 +160,35 @@ export function SiteHeader() {
     queryFn: isCampusStaff,
     enabled: !!user,
   });
+  const profileQuery = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: () => fetchProfile(user!.id),
+    enabled: !!user,
+  });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`notifications:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `recipient_id=eq.${user.id}`,
+        },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
+          void queryClient.invalidateQueries({ queryKey: ["unread-notification-count", user.id] });
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient, user]);
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -150,16 +200,16 @@ export function SiteHeader() {
     exact ? pathname === to : pathname.startsWith(to);
 
   return (
-    <header className="sticky top-0 z-40 border-b-2 border-ink/10 bg-cream">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
+    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
         <Link to="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
           <span
             aria-hidden="true"
-            className="grid size-11 place-items-center rounded-2xl bg-board font-display text-xl font-semibold text-cream"
+            className="grid size-10 place-items-center rounded-xl bg-[linear-gradient(135deg,#172554_0%,#2563eb_100%)] font-display text-lg font-extrabold text-white shadow-[0_8px_18px_rgba(23,37,84,0.28)]"
           >
             C
           </span>
-          <span className="font-display text-2xl font-semibold leading-none tracking-tight">
+          <span className="font-display text-xl font-extrabold tracking-[-0.04em] text-slate-900">
             CampusFind
           </span>
         </Link>
@@ -171,21 +221,15 @@ export function SiteHeader() {
               to={item.to}
               activeOptions={{ exact: item.exact ?? false }}
               className={
-                "rounded-full px-4 py-2 text-sm font-medium transition-transform hover:-translate-y-0.5 " +
+                "rounded-full px-3.5 py-2 text-sm font-medium transition-all duration-200 ease-out " +
                 (isActive(item.to, item.exact)
-                  ? "bg-ink/10 text-ink"
-                  : "text-ink/70 hover:text-ink")
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")
               }
             >
               {item.label}
             </Link>
           ))}
-          <Link
-            to="/report-lost"
-            className="ml-2 rounded-full bg-ink px-5 py-2 text-sm font-semibold text-cream transition-transform hover:-translate-y-0.5"
-          >
-            Report an item
-          </Link>
           {user ? (
             <>
               <NotificationDropdown />
@@ -193,7 +237,7 @@ export function SiteHeader() {
               <button
                 type="button"
                 onClick={signOut}
-                className="ml-1 rounded-full border-2 border-ink/15 px-4 py-1.5 text-sm font-semibold text-ink transition-transform hover:-translate-y-0.5"
+                className="ml-1 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50"
               >
                 Sign out
               </button>
@@ -202,7 +246,7 @@ export function SiteHeader() {
             <Link
               to="/auth"
               search={{ mode: "signin" }}
-              className="ml-1 rounded-full border-2 border-ink/15 px-4 py-1.5 text-sm font-semibold text-ink transition-transform hover:-translate-y-0.5"
+              className="ml-1 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50"
             >
               Sign in
             </Link>
@@ -213,7 +257,7 @@ export function SiteHeader() {
           {user && <NotificationDropdown />}
           <button
             type="button"
-            className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-cream lg:hidden"
+            className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(15,23,42,0.2)] lg:hidden"
             aria-expanded={open}
             aria-controls="mobile-nav"
             onClick={() => setOpen((v) => !v)}
@@ -223,11 +267,25 @@ export function SiteHeader() {
         </div>
       </div>
 
+      {user &&
+        profileQuery.isSuccess &&
+        !profileQuery.data?.user_type &&
+        pathname !== "/profile" && (
+          <div className="border-t border-ink/10 bg-mustard/20 px-5 py-2.5 text-sm">
+            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 sm:px-3">
+              <span>Complete your campus profile to help staff verify claims.</span>
+              <Link to="/profile" className="font-semibold underline underline-offset-2">
+                Complete profile
+              </Link>
+            </div>
+          </div>
+        )}
+
       {open && (
         <nav
           id="mobile-nav"
           aria-label="Main"
-          className="border-t-2 border-ink/10 bg-cream px-5 pb-5 pt-2 lg:hidden"
+          className="border-t border-slate-200 bg-white/95 px-5 pb-5 pt-2 lg:hidden"
         >
           <ul className="flex flex-col gap-1">
             {[

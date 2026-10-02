@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
+import { MessageCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,9 @@ import {
   fetchHandoversForClaims,
   fetchItem,
   fetchMyFeedback,
+  fetchProfile,
+  fetchUnreadConversationMessageCount,
+  getOrCreateConversation,
   isItemReporter,
   isCampusStaff,
   saveHandoverEvidence,
@@ -62,6 +66,11 @@ function ItemDetailPage() {
     queryFn: isCampusStaff,
     enabled: !!user,
   });
+  const profileQuery = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: () => fetchProfile(user!.id),
+    enabled: !!user,
+  });
   const claimsQuery = useQuery({
     queryKey: ["claims", itemId, user?.id],
     queryFn: () => fetchClaimsForItem(itemId),
@@ -72,6 +81,18 @@ function ItemDetailPage() {
   const isStaff = staffQuery.data === true;
   const ownClaim = claims.find((claim) => claim.claimant_id === user?.id);
   const visibleClaim = ownClaim ?? (isReporter || isStaff ? claims[0] : undefined);
+  const canAccessVisibleClaim =
+    !!user && !!visibleClaim && (isReporter || isStaff || visibleClaim.claimant_id === user.id);
+  const conversationQuery = useQuery({
+    queryKey: ["conversation-for-claim", visibleClaim?.id],
+    queryFn: () => getOrCreateConversation(visibleClaim!.id, item!.id),
+    enabled: canAccessVisibleClaim && !!item,
+  });
+  const conversationUnreadQuery = useQuery({
+    queryKey: ["conversation-unread-count", conversationQuery.data?.id, user?.id],
+    queryFn: () => fetchUnreadConversationMessageCount(conversationQuery.data!.id, user!.id),
+    enabled: !!user && !!conversationQuery.data,
+  });
   const handoversQuery = useQuery({
     queryKey: ["handovers", visibleClaim?.id],
     queryFn: () => fetchHandoversForClaims(visibleClaim ? [visibleClaim.id] : []),
@@ -143,6 +164,8 @@ function ItemDetailPage() {
     item.itemStatus === "open" &&
     !isReporter &&
     !!user &&
+    profileQuery.isSuccess &&
+    !!profileQuery.data?.user_type &&
     reporterQuery.isSuccess;
   const statusLabel =
     item.itemStatus === "returned"
@@ -304,6 +327,24 @@ function ItemDetailPage() {
                     </DialogContent>
                   </Dialog>
                 )}
+                {user &&
+                  profileQuery.isSuccess &&
+                  !profileQuery.data?.user_type &&
+                  item.status === "found" &&
+                  item.itemStatus === "open" &&
+                  !isReporter && (
+                    <Link to="/profile" className={primaryButton}>
+                      Complete your profile to claim
+                    </Link>
+                  )}
+                {user &&
+                  profileQuery.isError &&
+                  item.status === "found" &&
+                  item.itemStatus === "open" && (
+                    <p role="alert" className="text-sm text-tomato">
+                      We couldn’t check your profile. Please reload before submitting a claim.
+                    </p>
+                  )}
                 {!user && item.status === "found" && item.itemStatus === "open" && (
                   <Link
                     to="/auth"
@@ -374,6 +415,29 @@ function ItemDetailPage() {
               </h2>
               {visibleClaim.review_note && (
                 <p className="mt-2 text-sm text-ink/70">Staff note: {visibleClaim.review_note}</p>
+              )}
+              {canAccessVisibleClaim && conversationQuery.data && (
+                <Link
+                  to="/conversations/$conversationId"
+                  params={{ conversationId: conversationQuery.data.id }}
+                  className={`${primaryButton} mt-4`}
+                >
+                  <MessageCircle aria-hidden="true" size={17} />
+                  Open Chat
+                  {(conversationUnreadQuery.data ?? 0) > 0 && (
+                    <span className="grid min-w-5 place-items-center rounded-full bg-tomato px-1 text-xs text-cream">
+                      {conversationUnreadQuery.data}
+                    </span>
+                  )}
+                </Link>
+              )}
+              {canAccessVisibleClaim && conversationQuery.isLoading && (
+                <p className="mt-3 text-sm text-ink/55">Preparing private chat…</p>
+              )}
+              {canAccessVisibleClaim && conversationQuery.isError && (
+                <p role="alert" className="mt-3 text-sm text-tomato">
+                  Chat is unavailable for this claim.
+                </p>
               )}
               {(isReporter || isStaff) && (
                 <details className="mt-4">

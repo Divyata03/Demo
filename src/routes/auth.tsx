@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { ROLE_LABEL, type CampusRole } from "@/lib/items";
+import { PROFILE_TYPE_LABEL, type ProfileUserType } from "@/lib/items";
 
 type AuthSearch = { mode?: "signin" | "signup" | undefined; next?: string | undefined };
 
@@ -18,9 +18,15 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Sign in — CampusFind" },
-      { name: "description", content: "Sign in or create a CampusFind account with your college email." },
+      {
+        name: "description",
+        content: "Sign in or create a CampusFind account with your college email.",
+      },
       { property: "og:title", content: "Sign in — CampusFind" },
-      { property: "og:description", content: "Sign in or create a CampusFind account with your college email." },
+      {
+        property: "og:description",
+        content: "Sign in or create a CampusFind account with your college email.",
+      },
     ],
   }),
   component: AuthPage,
@@ -34,7 +40,7 @@ const signupSchema = z.object({
   fullName: z.string().trim().min(2, "Please enter your name").max(80),
   email: z.string().trim().email("Please enter a valid college email").max(255),
   password: z.string().min(8, "Password needs at least 8 characters").max(72),
-  role: z.enum(["student", "teacher", "security", "cleaning_staff", "other_staff"]),
+  userType: z.enum(["student", "teacher", "cleaner", "other_staff"]),
 });
 
 function AuthPage() {
@@ -62,7 +68,7 @@ function AuthPage() {
           fullName: f.get("fullName"),
           email: f.get("email"),
           password: f.get("password"),
-          role: f.get("role"),
+          userType: f.get("userType"),
         });
         if (!parsed.success) {
           setError(parsed.error.issues[0]?.message ?? "Please check the form");
@@ -72,12 +78,19 @@ function AuthPage() {
           email: parsed.data.email,
           password: parsed.data.password,
           options: {
-            data: { full_name: parsed.data.fullName, campus_role: parsed.data.role },
+            data: {
+              full_name: parsed.data.fullName,
+              user_type: parsed.data.userType,
+              campus_role:
+                parsed.data.userType === "cleaner" ? "cleaning_staff" : parsed.data.userType,
+            },
           },
         });
         if (error) setError(error.message);
         else if (!data.session)
-          setInfo("Almost done! We sent a link to your college email. Open it to confirm your account, then sign in.");
+          setInfo(
+            "Almost done! We sent a link to your college email. Open it to confirm your account, then sign in.",
+          );
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: String(f.get("email") ?? "").trim(),
@@ -101,38 +114,90 @@ function AuthPage() {
           : "Sign in with your college email to post on the board."}
       </p>
 
-      <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-5 rounded-3xl border-2 border-ink/10 bg-white p-6 sm:p-8">
+      <form
+        onSubmit={onSubmit}
+        className="mt-8 flex flex-col gap-5 rounded-3xl border-2 border-ink/10 bg-white p-6 sm:p-8"
+      >
         {isSignup && (
           <div>
-            <label htmlFor="fullName" className={labelClass}>Your name</label>
-            <input id="fullName" name="fullName" required autoComplete="name" placeholder="e.g. Asha" className={inputClass} />
-            <p className="mt-1.5 text-xs text-ink/55">Only your first name is shown on the board.</p>
+            <label htmlFor="fullName" className={labelClass}>
+              Your name
+            </label>
+            <input
+              id="fullName"
+              name="fullName"
+              required
+              autoComplete="name"
+              placeholder="e.g. Asha"
+              className={inputClass}
+            />
+            <p className="mt-1.5 text-xs text-ink/55">
+              Only your first name is shown on the board.
+            </p>
           </div>
         )}
         <div>
-          <label htmlFor="email" className={labelClass}>College email</label>
-          <input id="email" name="email" type="email" required autoComplete="email" placeholder="you@college.edu" className={inputClass} />
-          {isSignup && <p className="mt-1.5 text-xs text-ink/55">Never shown to anyone on the board.</p>}
+          <label htmlFor="email" className={labelClass}>
+            College email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="you@college.edu"
+            className={inputClass}
+          />
+          {isSignup && (
+            <p className="mt-1.5 text-xs text-ink/55">Never shown to anyone on the board.</p>
+          )}
         </div>
         <div>
-          <label htmlFor="password" className={labelClass}>Password</label>
-          <input id="password" name="password" type="password" required minLength={isSignup ? 8 : undefined} autoComplete={isSignup ? "new-password" : "current-password"} className={inputClass} />
+          <label htmlFor="password" className={labelClass}>
+            Password
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            minLength={isSignup ? 8 : undefined}
+            autoComplete={isSignup ? "new-password" : "current-password"}
+            className={inputClass}
+          />
         </div>
         {isSignup && (
           <div>
-            <label htmlFor="role" className={labelClass}>I am a…</label>
-            <select id="role" name="role" defaultValue="student" className={inputClass}>
-              {(Object.keys(ROLE_LABEL) as CampusRole[]).map((r) => (
-                <option key={r} value={r}>{ROLE_LABEL[r]}</option>
+            <label htmlFor="userType" className={labelClass}>
+              User Type
+            </label>
+            <select id="userType" name="userType" defaultValue="student" className={inputClass}>
+              {(Object.keys(PROFILE_TYPE_LABEL) as ProfileUserType[]).map((type) => (
+                <option key={type} value={type}>
+                  {PROFILE_TYPE_LABEL[type]}
+                </option>
               ))}
             </select>
           </div>
         )}
 
-        {error && <p role="alert" className="rounded-2xl bg-tomato/12 p-3 text-sm font-medium text-tomato">{error}</p>}
-        {info && <p role="status" className="rounded-2xl bg-mustard/30 p-3 text-sm font-medium text-ink">{info}</p>}
+        {error && (
+          <p role="alert" className="rounded-2xl bg-tomato/12 p-3 text-sm font-medium text-tomato">
+            {error}
+          </p>
+        )}
+        {info && (
+          <p role="status" className="rounded-2xl bg-mustard/30 p-3 text-sm font-medium text-ink">
+            {info}
+          </p>
+        )}
 
-        <button type="submit" disabled={busy} className="rounded-3xl bg-ink px-8 py-4 text-lg font-semibold text-cream transition-transform hover:-translate-y-0.5 disabled:opacity-60">
+        <button
+          type="submit"
+          disabled={busy}
+          className="rounded-3xl bg-ink px-8 py-4 text-lg font-semibold text-cream transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+        >
           {busy ? "Please wait…" : isSignup ? "Create account" : "Sign in"}
         </button>
       </form>

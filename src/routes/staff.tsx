@@ -7,6 +7,7 @@ import {
   CLAIM_STATUS_LABEL,
   completeHandover,
   fetchClaimsForItems,
+  fetchClaimantProfiles,
   fetchHandoversForClaims,
   fetchItems,
   isCampusStaff,
@@ -37,7 +38,8 @@ function StaffDashboard() {
       const items = await fetchItems({ includeHidden: true, limit: 200 });
       const claims = await fetchClaimsForItems(items.map((item) => item.id));
       const handovers = await fetchHandoversForClaims(claims.map((claim) => claim.id));
-      return { items, claims, handovers };
+      const profiles = await fetchClaimantProfiles(claims.map((claim) => claim.claimant_id));
+      return { items, claims, handovers, profiles };
     },
   });
   const dashboard = boardQuery.data;
@@ -154,6 +156,11 @@ function StaffDashboard() {
                     <p className="mt-1 text-xs text-ink/55">
                       Submitted {new Date(claim.created_at).toLocaleString()}
                     </p>
+                    <ClaimantIdentity
+                      profile={dashboard?.profiles.find(
+                        (profile) => profile.id === claim.claimant_id,
+                      )}
+                    />
                     <div className="mt-4 rounded-2xl bg-cream p-4">
                       <p className="text-xs font-semibold uppercase text-ink/55">
                         Private ownership details
@@ -313,5 +320,70 @@ function StaffDashboard() {
         </>
       )}
     </div>
+  );
+}
+
+type ClaimantProfile = Awaited<ReturnType<typeof fetchClaimantProfiles>>[number];
+
+function ClaimantIdentity({ profile }: { profile: ClaimantProfile | undefined }) {
+  if (!profile)
+    return (
+      <p className="mt-4 rounded-2xl bg-cream p-4 text-sm text-ink/65">
+        The claimant has not completed a profile.
+      </p>
+    );
+
+  const details =
+    profile.user_type === "student"
+      ? [
+          ["Roll number", profile.student_roll_number],
+          ["Department", profile.department],
+          ["Semester", profile.semester?.toString()],
+          ["Academic year", profile.academic_year],
+        ]
+      : profile.user_type === "teacher"
+        ? [
+            ["Staff ID", profile.employee_staff_id],
+            ["Department", profile.department],
+            ["Subjects", profile.subjects?.join(", ")],
+            ["Staff room", profile.staff_room_location],
+          ]
+        : profile.user_type === "cleaner"
+          ? [
+              ["Staff ID", profile.employee_staff_id],
+              ["Cleaning area", profile.cleaning_area],
+              ["Equipment room", profile.equipment_room_location],
+              ["Break room", profile.break_room_location],
+            ]
+          : [
+              ["Staff ID", profile.employee_staff_id],
+              ["Department", profile.department],
+              ["Job role", profile.job_role],
+              ["Work location", profile.work_location],
+            ];
+
+  return (
+    <section className="mt-4 rounded-2xl border border-ink/10 bg-cream p-4">
+      <h4 className="text-sm font-semibold">Private claimant profile</h4>
+      <p className="mt-1 text-sm">
+        {profile.full_name} · {profile.user_type?.replace("_", " ") ?? "Profile incomplete"}
+      </p>
+      <dl className="mt-3 grid gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
+        <div>
+          <dt className="text-xs font-semibold text-ink/55">Email</dt>
+          <dd className="break-all">{profile.college_email}</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-semibold text-ink/55">Mobile/WhatsApp</dt>
+          <dd>{profile.phone_number ?? "Not provided"}</dd>
+        </div>
+        {details.map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-xs font-semibold text-ink/55">{label}</dt>
+            <dd>{value ?? "Not provided"}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
