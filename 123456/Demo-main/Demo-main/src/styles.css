@@ -1,0 +1,130 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * CampusFind design system — "Playful Notice Board"
+ * Palette: cream #FBF3E4, board navy #1E3A5B, tomato #E8542F,
+ * mustard #F5B841, ink #21251F. Fonts: Fraunces (display), DM Sans (body).
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-cream: var(--cream);
+  --color-board: var(--board);
+  --color-tomato: var(--tomato);
+  --color-mustard: var(--mustard);
+  --color-ink: var(--ink);
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "DM Sans", system-ui, sans-serif;
+}
+
+:root {
+  --radius: 1rem;
+
+  /* Core palette */
+  --cream: oklch(0.962 0.027 90);
+  --board: oklch(0.328 0.058 253);
+  --tomato: oklch(0.645 0.207 34);
+  --mustard: oklch(0.824 0.137 84);
+  --ink: oklch(0.244 0.012 145);
+
+  /* Semantic tokens */
+  --background: var(--cream);
+  --foreground: var(--ink);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--ink);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--ink);
+  --primary: var(--board);
+  --primary-foreground: var(--cream);
+  --secondary: var(--mustard);
+  --secondary-foreground: var(--ink);
+  --muted: oklch(0.925 0.02 90);
+  --muted-foreground: oklch(0.44 0.02 120);
+  --accent: var(--mustard);
+  --accent-foreground: var(--ink);
+  --destructive: var(--tomato);
+  --destructive-foreground: oklch(0.98 0.01 80);
+  --border: oklch(0.244 0.012 145 / 10%);
+  --input: oklch(0.244 0.012 145 / 18%);
+  --ring: var(--board);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: var(--color-mustard);
+    color: var(--color-ink);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.5s ease both;
+}
+
+/* Consistent focus-visible ring for accessibility */
+@layer base {
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  summary:focus-visible {
+    outline: 3px solid var(--color-board);
+    outline-offset: 2px;
+    border-radius: 0.5rem;
+  }
+}

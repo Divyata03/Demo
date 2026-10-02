@@ -1,0 +1,182 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * CampusFind design system — "Playful Notice Board"
+ * Palette: cream #FBF3E4, board navy #1E3A5B, tomato #E8542F,
+ * mustard #F5B841, ink #21251F. Fonts: Fraunces (display), DM Sans (body).
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-cream: var(--cream);
+  --color-board: var(--board);
+  --color-tomato: var(--tomato);
+  --color-mustard: var(--mustard);
+  --color-ink: var(--ink);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "DM Sans", system-ui, sans-serif;
+}
+
+:root {
+  --radius: 1rem;
+
+  --cream: #F8FAFC;
+  --board: #172554;
+  --tomato: #DC2626;
+  --mustard: #14B8A6;
+  --ink: #0F172A;
+
+  --background: var(--cream);
+  --foreground: var(--ink);
+  --card: #FFFFFF;
+  --card-foreground: var(--ink);
+  --popover: #FFFFFF;
+  --popover-foreground: var(--ink);
+  --primary: var(--board);
+  --primary-foreground: #FFFFFF;
+  --secondary: #E2E8F0;
+  --secondary-foreground: var(--ink);
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+  --accent: var(--mustard);
+  --accent-foreground: var(--ink);
+  --destructive: var(--tomato);
+  --destructive-foreground: #FFFFFF;
+  --border: #E2E8F0;
+  --input: #CBD5E1;
+  --ring: var(--board);
+  --success: #16A34A;
+  --warning: #D97706;
+  --error: #DC2626;
+  color-scheme: light;
+}
+
+.dark {
+  --cream: #0B1120;
+  --board: #60A5FA;
+  --tomato: #F87171;
+  --mustard: #2DD4BF;
+  --ink: #F8FAFC;
+
+  --background: #0B1120;
+  --foreground: #F8FAFC;
+  --card: #111827;
+  --card-foreground: #F8FAFC;
+  --popover: #111827;
+  --popover-foreground: #F8FAFC;
+  --primary: #60A5FA;
+  --primary-foreground: #0B1120;
+  --secondary: #1E293B;
+  --secondary-foreground: #F8FAFC;
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
+  --accent: #2DD4BF;
+  --accent-foreground: #0B1120;
+  --destructive: #F87171;
+  --destructive-foreground: #0B1120;
+  --border: #334155;
+  --input: #334155;
+  --ring: #60A5FA;
+  --success: #4ADE80;
+  --warning: #FBBF24;
+  --error: #F87171;
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: var(--color-mustard);
+    color: var(--color-ink);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.5s ease both;
+}
+
+/* Consistent focus-visible ring for accessibility */
+@layer base {
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  summary:focus-visible {
+    outline: 3px solid var(--color-board);
+    outline-offset: 2px;
+    border-radius: 0.5rem;
+  }
+}
+
+@layer utilities {
+  .dark .bg-white {
+    background-color: var(--card);
+  }
+
+  .dark [class~="bg-white/60"] {
+    background-color: color-mix(in srgb, var(--card) 60%, transparent);
+  }
+}
+
+* {
+  transition: background-color 250ms ease, border-color 250ms ease, color 250ms ease,
+    transform 250ms ease, opacity 250ms ease;
+}
